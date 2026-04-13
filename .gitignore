@@ -1,0 +1,14 @@
+# Pythonキャッシュ
+__pycache__/
+*.py[cod]
+
+# データベース（ローカルのテストデータは上げないのが一般的）
+instance/
+database.db
+
+# 仮想環境
+venv/
+.env
+
+# OSの一時ファイル
+.DS_Store

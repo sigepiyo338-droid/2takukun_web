@@ -1,0 +1,203 @@
+/* --- 基本設定 --- */
+body {
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+#app {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+
+/* --- セクション制御 (重要！) --- */
+.section {
+    transition: opacity 0.3s ease;
+}
+
+/* このクラスがついている間は画面から消える */
+.hidden {
+    display: none;
+}
+
+/* --- タイトル・テキスト --- */
+h1 {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+
+h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+/* --- ボタンのデザイン --- */
+button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 8px;
+    background-color: #3498db;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+/* --- 入力フォーム --- */
+input[type="text"] {
+    width: calc(100% - 24px);
+    padding: 10px;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#personality-list {
+    text-align: left;
+    margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/* --- レーダーチャート用 --- */
+canvas {
+    margin-top: 20px;
+    max-width: 100%;
+}
+
+/* トップメニューのボタン個別設定 */
+
+/* 1. 設定ボタン：パステルピンク */
+#btn-settings {
+    background-color: #ffdae9; 
+    color: #444;
+}
+
+/* 2. 診断開始ボタン：パステルブルー（大きく強調） */
+#btn-start {
+    background-color: #d1e9ff;
+    color: #444;
+    font-size: 1.5rem; /* 標準の1.5倍の大きさ */
+    font-weight: bold;
+    padding: 18px;    /* ボタン自体も少し大きく */
+    margin: 15px 0;   /* 上下の余白を広げて目立たせる */
+}
+
+/* 3. 投稿ボタン：パステルグリーン */
+#btn-post {
+    background-color: #d4f5d4;
+    color: #444;
+}
+
+/* ホバー時（マウスを乗せた時）に少し色を濃くする演出 */
+#btn-settings:hover { background-color: #ffc2d1; }
+#btn-start:hover { background-color: #b3d9ff; }
+#btn-post:hover { background-color: #bdf0bd; }
+
+/* メニュー画面（#menu-page）内のボタンだけ間隔を広げる */
+#menu-page button {
+    margin: 20px 0; 
+}
+
+/* Xリンクのスタイリング */
+.x-link {
+    display: block;
+    margin-top: 30px; /* 前のボタンとの間隔 */
+    text-align: right;
+    font-size: 0.8rem;
+    color: #888;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.x-link:hover {
+    color: #1da1f2; /* X（Twitter）カラーに近い青 */
+    text-decoration: underline;
+}
+
+/* ダウンロードリンクのスタイル */
+.download-link {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 0.7rem;
+    color: #95a5a6; /* 控えめなグレー */
+    text-decoration: none;
+    border: 1px solid #eee;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.download-link:hover {
+    background-color: #f8f9fa;
+    color: #34495e;
+    border-color: #bdc3c7;
+}
+
+/* モバイル対応：画面が狭い時も邪魔にならないように調整 */
+@media (max-width: 480px) {
+    .download-link {
+        top: 5px;
+        right: 10px;
+        font-size: 0.6rem;
+    }
+}
+
+/* --- トップ画面の画像調整 --- */
+#title-image {
+    max-width: 80%;  /* 横幅を少し抑える */
+    height: auto;    /* アスペクト比を維持 */
+    display: block;  /* 中央揃えのためにブロック要素にする */
+    margin: 1rem auto;  /* 上下に余白（1rem）を作り、左右は自動（auto）で中央揃え */
+}
+
+/* --- 右下のバージョン表示 --- */
+#app-meta {
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-size: 0.7rem;
+    color: #95a5a6;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+#app-meta span {
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    #app-meta {
+        right: 8px;
+        bottom: 8px;
+        right: max(8px, env(safe-area-inset-right));
+        bottom: max(8px, env(safe-area-inset-bottom));
+        gap: 6px;
+        padding: 5px 8px;
+        font-size: 0.68rem;
+    }
+}
