@@ -96,11 +96,29 @@ def read_personalities() -> tuple[list[str], list[tuple]]:
     return columns, rows
 
 
+def delete_personality_and_related_scores(personality_id: int) -> tuple[int, int]:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"database.db が見つかりません: {DB_PATH}")
+
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM scores WHERE personality_id = ?", (personality_id,))
+        deleted_scores = cursor.rowcount if cursor.rowcount != -1 else 0
+        cursor.execute("DELETE FROM personalities WHERE id = ?", (personality_id,))
+        deleted_personalities = cursor.rowcount if cursor.rowcount != -1 else 0
+        conn.commit()
+
+    if deleted_personalities == 0:
+        raise ValueError("選択された personality は既に存在しない可能性があります。")
+    return deleted_personalities, deleted_scores
+
+
 def build_ui() -> tk.Tk:
     root = tk.Tk()
     root.title("究極二択くん ローカル管理ツール")
     root.geometry("620x360")
-    root.resizable(False, False)
+    root.resizable(True, True)
+    root.minsize(620, 360)
     root.columnconfigure(0, weight=1)
 
     style = ttk.Style(root)
@@ -266,14 +284,59 @@ def build_ui() -> tk.Tk:
                 personalities_tree.insert("", "end", values=row)
 
             personalities_status_var.set(f"{len(rows)} 件表示")
-            status_var.set("性格一覧を更新しました。")
         except Exception as exc:
             personalities_status_var.set(f"読込失敗: {exc}")
             status_var.set(f"性格タブ読込失敗: {exc}")
 
+    def handle_delete_selected_personality() -> None:
+        selected_items = personalities_tree.selection()
+        if not selected_items:
+            messagebox.showwarning("未選択", "削除する行を選択してください。")
+            return
+
+        item_id = selected_items[0]
+        values = personalities_tree.item(item_id, "values")
+        if not values:
+            messagebox.showerror("エラー", "選択行の値を取得できませんでした。")
+            return
+
+        try:
+            personality_id = int(values[0])
+        except (TypeError, ValueError):
+            messagebox.showerror("エラー", "選択行のIDが不正です。")
+            return
+
+        if not messagebox.askyesno(
+            "確認",
+            f"personality_id={personality_id} を削除します。\n"
+            "関連する scores も削除されます。続行しますか？",
+        ):
+            return
+
+        try:
+            deleted_personalities, deleted_scores = delete_personality_and_related_scores(
+                personality_id
+            )
+            reload_personalities()
+            status_var.set(
+                f"性格ID {personality_id} を削除（personalities:{deleted_personalities}, scores:{deleted_scores}）"
+            )
+            messagebox.showinfo(
+                "削除完了",
+                f"personalities: {deleted_personalities} 件\nscores: {deleted_scores} 件 を削除しました。",
+            )
+        except Exception as exc:
+            status_var.set(f"性格削除失敗: {exc}")
+            messagebox.showerror("エラー", f"性格削除失敗: {exc}")
+
     ttk.Button(
         personalities_tab, text="一覧を再読込", command=reload_personalities
     ).grid(row=1, column=0, sticky="w")
+    ttk.Button(
+        personalities_tab,
+        text="選択中の性格を削除（scoresも削除）",
+        command=handle_delete_selected_personality,
+    ).grid(row=1, column=0, sticky="e")
     reload_personalities()
 
     tools_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
