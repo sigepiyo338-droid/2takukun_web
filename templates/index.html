@@ -19,7 +19,10 @@
         <p>〜 ヒトの価値観を学習中 〜</p>
             <button id="btn-settings" onclick="showSection('personality-page')">あなたについて(最初の設定)</button>
             <button id="btn-start" onclick="startDiagnosis()">2択診断開始！</button>
-            <button id="btn-post" onclick="showSection('post-page')">各種投稿</button>
+            <button id="btn-other" onclick="showSection('other-page')">
+                その他
+                <span class="button-subtext">（質問の投稿などが行えます）</span>
+            </button>
     
             <a href="https://x.com/sigepiyo338" target="_blank" rel="noopener noreferrer" class="x-link">
                 𝕏 @sigepiyo338
@@ -48,6 +51,12 @@
                 <button onclick="addUserPersonality()" style="background-color: #27ae60;">性格を追加</button>
             </div>
 
+            <button onclick="showSection('other-page')" style="background-color: #95a5a6;">戻る</button>
+        </section>
+
+        <section id="other-page" class="section hidden">
+            <h2>その他</h2>
+            <button id="btn-post-other" onclick="showSection('post-page')">各種投稿</button>
             <button onclick="showSection('menu-page')" style="background-color: #95a5a6;">戻る</button>
         </section>
 
@@ -101,8 +110,8 @@
 
 
         <div id="app-meta" aria-label="アプリ情報">
-            <span id="app-version">v1.0.3</span>
-            <span>最終更新: 2026-04-26</span>
+            <span id="app-version">v1.0.4</span>
+            <span>最終更新: 2026-04-28</span>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>

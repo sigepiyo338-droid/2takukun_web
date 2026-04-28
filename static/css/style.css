@@ -111,10 +111,24 @@ canvas {
     color: #444;
 }
 
+/* 4. その他ボタン：パステルラベンダー */
+#btn-other {
+    background-color: #e7dcff;
+    color: #444;
+}
+
+#btn-other .button-subtext {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    font-weight: normal;
+}
+
 /* ホバー時（マウスを乗せた時）に少し色を濃くする演出 */
 #btn-settings:hover { background-color: #ffc2d1; }
 #btn-start:hover { background-color: #b3d9ff; }
 #btn-post:hover { background-color: #bdf0bd; }
+#btn-other:hover { background-color: #d8c8ff; }
 
 /* メニュー画面（#menu-page）内のボタンだけ間隔を広げる */
 #menu-page button {
