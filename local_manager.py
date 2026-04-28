@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import re
+import webbrowser
 from pathlib import Path
 from urllib.request import urlopen
 
@@ -81,14 +82,42 @@ def format_db_last_modified() -> str:
 
 def build_ui() -> tk.Tk:
     root = tk.Tk()
-    root.title("究極二択くん ローカル管理")
+    root.title("究極二択くん ローカル管理ツール")
     root.geometry("620x360")
     root.resizable(False, False)
     root.columnconfigure(0, weight=1)
 
+    style = ttk.Style(root)
+    try:
+        style.theme_use("clam")
+    except tk.TclError:
+        pass
+    style.configure(
+        "Manager.TNotebook",
+        background="#d6d6d6",
+        borderwidth=1,
+        relief="solid",
+    )
+    style.configure(
+        "Manager.TNotebook.Tab",
+        background="#c8c8c8",
+        foreground="#1f1f1f",
+        borderwidth=1,
+        padding=(12, 5),
+    )
+    style.map(
+        "Manager.TNotebook.Tab",
+        background=[("selected", "#ffffff"), ("active", "#e3e3e3")],
+        foreground=[("selected", "#000000"), ("active", "#1a1a1a")],
+        padding=[("selected", (16, 8)), ("!selected", (12, 5))],
+        relief=[("selected", "raised"), ("!selected", "ridge")],
+    )
+    style.configure("Manager.TFrame", background="#f6f6f6")
+
     frame = ttk.Frame(root, padding=16)
     frame.grid(row=0, column=0, sticky="nsew")
-    frame.columnconfigure(1, weight=1)
+    frame.columnconfigure(0, weight=1)
+    frame.rowconfigure(0, weight=1)
 
     content = read_index()
     current_version, current_updated = extract_meta(content)
@@ -96,26 +125,33 @@ def build_ui() -> tk.Tk:
     version_var = tk.StringVar(value=current_version)
     updated_var = tk.StringVar(value=current_updated)
     status_var = tk.StringVar(value="準備完了")
+    db_last_modified_var = tk.StringVar(value=format_db_last_modified())
 
-    ttk.Label(frame, text="アプリ情報編集（index.html）").grid(
+    notebook = ttk.Notebook(frame, style="Manager.TNotebook")
+    notebook.grid(row=0, column=0, sticky="nsew")
+
+    version_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
+    version_tab.columnconfigure(1, weight=1)
+    notebook.add(version_tab, text="バージョン管理")
+
+    ttk.Label(version_tab, text="アプリ情報収集（index.html）").grid(
         row=0, column=0, columnspan=2, sticky="w", pady=(0, 8)
     )
-    ttk.Label(frame, text=f"対象: {INDEX_PATH}").grid(
+    ttk.Label(version_tab, text=f"対象: {INDEX_PATH}").grid(
         row=1, column=0, columnspan=2, sticky="w", pady=(0, 12)
     )
-
-    ttk.Label(frame, text="バージョン").grid(row=2, column=0, sticky="w")
-    version_entry = ttk.Entry(frame, textvariable=version_var)
+    ttk.Label(version_tab, text="バージョン").grid(row=2, column=0, sticky="w")
+    version_entry = ttk.Entry(version_tab, textvariable=version_var)
     version_entry.grid(row=2, column=1, sticky="ew", padx=(8, 0), pady=(0, 8))
 
-    ttk.Label(frame, text="最終更新日").grid(row=3, column=0, sticky="w")
-    updated_entry = ttk.Entry(frame, textvariable=updated_var)
+    ttk.Label(version_tab, text="最終更新日").grid(row=3, column=0, sticky="w")
+    updated_entry = ttk.Entry(version_tab, textvariable=updated_var)
     updated_entry.grid(row=3, column=1, sticky="ew", padx=(8, 0), pady=(0, 8))
 
     def set_today() -> None:
         updated_var.set(datetime.now().strftime("%Y-%m-%d"))
 
-    ttk.Button(frame, text="本日の日付にする", command=set_today).grid(
+    ttk.Button(version_tab, text="本日の日付にする", command=set_today).grid(
         row=4, column=1, sticky="w", padx=(8, 0), pady=(0, 8)
     )
 
@@ -128,24 +164,22 @@ def build_ui() -> tk.Tk:
             status_var.set(f"更新失敗: {exc}")
             messagebox.showerror("エラー", f"更新失敗: {exc}")
 
-    ttk.Button(frame, text="index.html を更新する", command=handle_update_meta).grid(
+    ttk.Button(version_tab, text="index.html を更新する", command=handle_update_meta).grid(
         row=5, column=0, columnspan=2, sticky="ew", pady=(4, 16)
     )
 
-    ttk.Separator(frame, orient="horizontal").grid(
-        row=6, column=0, columnspan=2, sticky="ew", pady=4
-    )
+    db_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
+    notebook.add(db_tab, text="DB")
 
-    ttk.Label(frame, text="database.db 同期（上書き）").grid(
-        row=7, column=0, columnspan=2, sticky="w", pady=(8, 8)
+    ttk.Label(db_tab, text="database.db 同期（上書き）").grid(
+        row=0, column=0, columnspan=2, sticky="w", pady=(0, 8)
     )
-    ttk.Label(frame, text=f"ダウンロード元: {DB_URL}").grid(
-        row=8, column=0, columnspan=2, sticky="w"
+    ttk.Label(db_tab, text=f"ダウンロード元: {DB_URL}").grid(
+        row=1, column=0, columnspan=2, sticky="w"
     )
-    ttk.Label(frame, text=f"保存先: {DB_PATH}").grid(
-        row=9, column=0, columnspan=2, sticky="w", pady=(0, 8)
+    ttk.Label(db_tab, text=f"保存先: {DB_PATH}").grid(
+        row=2, column=0, columnspan=2, sticky="w", pady=(0, 8)
     )
-    db_last_modified_var = tk.StringVar(value=format_db_last_modified())
 
     def handle_sync_db() -> None:
         if not messagebox.askyesno(
@@ -161,15 +195,66 @@ def build_ui() -> tk.Tk:
             status_var.set(f"DB同期失敗: {exc}")
             messagebox.showerror("エラー", f"DB同期失敗: {exc}")
 
-    ttk.Button(frame, text="オンライン版で上書きする", command=handle_sync_db).grid(
-        row=10, column=0, columnspan=2, sticky="ew", pady=(4, 6)
+    ttk.Button(db_tab, text="オンライン版で上書きする", command=handle_sync_db).grid(
+        row=3, column=0, columnspan=2, sticky="ew", pady=(4, 6)
     )
-    ttk.Label(frame, textvariable=db_last_modified_var).grid(
-        row=11, column=0, columnspan=2, sticky="w", pady=(0, 6)
+    ttk.Label(db_tab, textvariable=db_last_modified_var).grid(
+        row=4, column=0, columnspan=2, sticky="w", pady=(0, 6)
+    )
+
+    tools_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
+    tools_tab.columnconfigure(0, weight=1)
+    notebook.add(tools_tab, text="外部ツール")
+
+    ttk.Label(tools_tab, text="・究極二択くん(オンライン版)").grid(
+        row=0, column=0, sticky="w"
+    )
+    online_url = ttk.Label(
+        tools_tab,
+        text="　-　https://sigepiyo338.pythonanywhere.com/",
+        foreground="#0066cc",
+        cursor="hand2",
+    )
+    online_url.grid(row=1, column=0, sticky="w", pady=(0, 8))
+    online_url.bind(
+        "<Button-1>",
+        lambda _event: webbrowser.open("https://sigepiyo338.pythonanywhere.com/"),
+    )
+
+    ttk.Label(tools_tab, text="・PythonAnywhere Dashboard").grid(
+        row=2, column=0, sticky="w"
+    )
+    pa_url = ttk.Label(
+        tools_tab,
+        text="　-　https://www.pythonanywhere.com/",
+        foreground="#0066cc",
+        cursor="hand2",
+    )
+    pa_url.grid(row=3, column=0, sticky="w", pady=(0, 8))
+    pa_url.bind(
+        "<Button-1>",
+        lambda _event: webbrowser.open("https://www.pythonanywhere.com/"),
+    )
+
+    ttk.Label(tools_tab, text="・Github - 2takukun_web").grid(
+        row=4, column=0, sticky="w"
+    )
+    github_url = ttk.Label(
+        tools_tab,
+        text="　-　https://github.com/sigepiyo338-droid/2takukun_web",
+        foreground="#0066cc",
+        cursor="hand2",
+    )
+    github_url.grid(row=5, column=0, sticky="w")
+    github_url.bind(
+        "<Button-1>",
+        lambda _event: webbrowser.open(
+            "https://github.com/sigepiyo338-droid/2takukun_web"
+        ),
     )
 
     ttk.Label(frame, textvariable=status_var).grid(
-        row=12, column=0, columnspan=2, sticky="w"
+        row=1, column=0, sticky="w", pady=(10, 0)
     )
 
     version_entry.focus_set()
