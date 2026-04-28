@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 import re
+import sqlite3
 import webbrowser
 from pathlib import Path
 from urllib.request import urlopen
@@ -78,6 +79,21 @@ def format_db_last_modified() -> str:
         return "ローカルDB最終更新日: （database.db が存在しません）"
     modified_at = datetime.fromtimestamp(DB_PATH.stat().st_mtime)
     return f"ローカルDB最終更新日: {modified_at.strftime('%Y-%m-%d %H:%M:%S')}"
+
+
+def read_personalities() -> tuple[list[str], list[tuple]]:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"database.db が見つかりません: {DB_PATH}")
+
+    with sqlite3.connect(DB_PATH) as conn:
+        columns_cursor = conn.execute("PRAGMA table_info(personalities)")
+        columns = [row[1] for row in columns_cursor.fetchall()]
+        if not columns:
+            raise ValueError("personalities テーブルが見つかりません。")
+
+        rows_cursor = conn.execute("SELECT * FROM personalities ORDER BY id")
+        rows = rows_cursor.fetchall()
+    return columns, rows
 
 
 def build_ui() -> tk.Tk:
@@ -169,7 +185,7 @@ def build_ui() -> tk.Tk:
     )
 
     db_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
-    notebook.add(db_tab, text="DB")
+    notebook.add(db_tab, text="DB同期")
 
     ttk.Label(db_tab, text="database.db 同期（上書き）").grid(
         row=0, column=0, columnspan=2, sticky="w", pady=(0, 8)
@@ -201,6 +217,64 @@ def build_ui() -> tk.Tk:
     ttk.Label(db_tab, textvariable=db_last_modified_var).grid(
         row=4, column=0, columnspan=2, sticky="w", pady=(0, 6)
     )
+
+    personalities_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
+    personalities_tab.columnconfigure(0, weight=1)
+    personalities_tab.rowconfigure(2, weight=1)
+    notebook.add(personalities_tab, text="性格")
+
+    ttk.Label(personalities_tab, text="性格一覧（database.db）").grid(
+        row=0, column=0, sticky="w", pady=(0, 8)
+    )
+
+    personalities_container = ttk.Frame(personalities_tab)
+    personalities_container.grid(row=2, column=0, sticky="nsew")
+    personalities_container.columnconfigure(0, weight=1)
+    personalities_container.rowconfigure(0, weight=1)
+
+    personalities_tree = ttk.Treeview(
+        personalities_container,
+        show="headings",
+        height=9,
+    )
+    personalities_tree.grid(row=0, column=0, sticky="nsew")
+
+    personalities_scroll_y = ttk.Scrollbar(
+        personalities_container,
+        orient="vertical",
+        command=personalities_tree.yview,
+    )
+    personalities_scroll_y.grid(row=0, column=1, sticky="ns")
+    personalities_tree.configure(yscrollcommand=personalities_scroll_y.set)
+
+    personalities_status_var = tk.StringVar(value="未読込")
+    ttk.Label(personalities_tab, textvariable=personalities_status_var).grid(
+        row=3, column=0, sticky="w", pady=(8, 0)
+    )
+
+    def reload_personalities() -> None:
+        try:
+            columns, rows = read_personalities()
+
+            personalities_tree.delete(*personalities_tree.get_children())
+            personalities_tree.configure(columns=columns)
+            for column in columns:
+                personalities_tree.heading(column, text=column)
+                personalities_tree.column(column, width=110, anchor="w")
+
+            for row in rows:
+                personalities_tree.insert("", "end", values=row)
+
+            personalities_status_var.set(f"{len(rows)} 件表示")
+            status_var.set("性格一覧を更新しました。")
+        except Exception as exc:
+            personalities_status_var.set(f"読込失敗: {exc}")
+            status_var.set(f"性格タブ読込失敗: {exc}")
+
+    ttk.Button(
+        personalities_tab, text="一覧を再読込", command=reload_personalities
+    ).grid(row=1, column=0, sticky="w")
+    reload_personalities()
 
     tools_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
     tools_tab.columnconfigure(0, weight=1)
