@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 import re
 import sqlite3
+import shutil
 import webbrowser
 from pathlib import Path
 from urllib.request import urlopen
@@ -14,6 +15,7 @@ from tkinter import messagebox, ttk
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_PATH = BASE_DIR / "templates" / "index.html"
 DB_PATH = BASE_DIR / "instance" / "database.db"
+DB_BACKUP_DIR = DB_PATH.parent / "backups"
 DB_URL = "https://sigepiyo338.pythonanywhere.com/static/database.db"
 
 VERSION_PATTERN = re.compile(r'(<span id="app-version">)([^<]*)(</span>)')
@@ -72,6 +74,16 @@ def sync_db() -> None:
     if not data:
         raise ValueError("ダウンロードしたDBが空です。")
     DB_PATH.write_bytes(data)
+
+
+def backup_db() -> Path:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"バックアップ対象の database.db が見つかりません: {DB_PATH}")
+    DB_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = DB_BACKUP_DIR / f"database_{timestamp}.db"
+    shutil.copy2(DB_PATH, backup_path)
+    return backup_path
 
 
 def format_db_last_modified() -> str:
@@ -215,25 +227,47 @@ def build_ui() -> tk.Tk:
         row=2, column=0, columnspan=2, sticky="w", pady=(0, 8)
     )
 
+    def handle_backup_db() -> None:
+        try:
+            backup_path = backup_db()
+            status_var.set(f"database.db をバックアップしました: {backup_path.name}")
+            messagebox.showinfo(
+                "成功", f"database.db をバックアップしました。\n保存先: {backup_path}"
+            )
+        except Exception as exc:
+            status_var.set(f"DBバックアップ失敗: {exc}")
+            messagebox.showerror("エラー", f"DBバックアップ失敗: {exc}")
+
     def handle_sync_db() -> None:
         if not messagebox.askyesno(
             "確認", "オンライン版の database.db でローカルを上書きします。続行しますか？"
         ):
             return
         try:
+            backup_label = "（既存DBなし）"
+            if DB_PATH.exists():
+                backup_path = backup_db()
+                backup_label = backup_path.name
             sync_db()
             db_last_modified_var.set(format_db_last_modified())
-            status_var.set("database.db を上書き同期しました。")
-            messagebox.showinfo("成功", "database.db を上書き同期しました。")
+            status_var.set(f"database.db を上書き同期しました。バックアップ: {backup_label}")
+            messagebox.showinfo(
+                "成功",
+                "database.db を上書き同期しました。\n"
+                f"事前バックアップ: {backup_label}",
+            )
         except Exception as exc:
             status_var.set(f"DB同期失敗: {exc}")
             messagebox.showerror("エラー", f"DB同期失敗: {exc}")
 
-    ttk.Button(db_tab, text="オンライン版で上書きする", command=handle_sync_db).grid(
+    ttk.Button(db_tab, text="現在のDBをバックアップする", command=handle_backup_db).grid(
         row=3, column=0, columnspan=2, sticky="ew", pady=(4, 6)
     )
+    ttk.Button(db_tab, text="オンライン版で上書きする", command=handle_sync_db).grid(
+        row=4, column=0, columnspan=2, sticky="ew", pady=(0, 6)
+    )
     ttk.Label(db_tab, textvariable=db_last_modified_var).grid(
-        row=4, column=0, columnspan=2, sticky="w", pady=(0, 6)
+        row=5, column=0, columnspan=2, sticky="w", pady=(0, 6)
     )
 
     personalities_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
