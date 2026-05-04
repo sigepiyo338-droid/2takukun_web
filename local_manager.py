@@ -125,6 +125,40 @@ def delete_personality_and_related_scores(personality_id: int) -> tuple[int, int
     return deleted_personalities, deleted_scores
 
 
+def read_questions() -> tuple[list[str], list[tuple]]:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"database.db が見つかりません: {DB_PATH}")
+
+    with sqlite3.connect(DB_PATH) as conn:
+        columns_cursor = conn.execute("PRAGMA table_info(questions)")
+        columns = [row[1] for row in columns_cursor.fetchall()]
+        if not columns:
+            raise ValueError("questions テーブルが見つかりません。")
+
+        rows_cursor = conn.execute("SELECT * FROM questions ORDER BY id")
+        rows = rows_cursor.fetchall()
+    return columns, rows
+
+
+def delete_question_and_related_records(question_id: int) -> tuple[int, int, int]:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(f"database.db が見つかりません: {DB_PATH}")
+
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM answers WHERE question_id = ?", (question_id,))
+        deleted_answers = cursor.rowcount if cursor.rowcount != -1 else 0
+        cursor.execute("DELETE FROM scores WHERE question_id = ?", (question_id,))
+        deleted_scores = cursor.rowcount if cursor.rowcount != -1 else 0
+        cursor.execute("DELETE FROM questions WHERE id = ?", (question_id,))
+        deleted_questions = cursor.rowcount if cursor.rowcount != -1 else 0
+        conn.commit()
+
+    if deleted_questions == 0:
+        raise ValueError("選択された question は既に存在しない可能性があります。")
+    return deleted_questions, deleted_answers, deleted_scores
+
+
 def build_ui() -> tk.Tk:
     root = tk.Tk()
     root.title("究極二択くん ローカル管理ツール")
@@ -215,7 +249,7 @@ def build_ui() -> tk.Tk:
     )
 
     db_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
-    notebook.add(db_tab, text="DB同期")
+    notebook.add(db_tab, text="DB管理")
 
     ttk.Label(db_tab, text="database.db 同期（上書き）").grid(
         row=0, column=0, columnspan=2, sticky="w", pady=(0, 8)
@@ -372,6 +406,111 @@ def build_ui() -> tk.Tk:
         command=handle_delete_selected_personality,
     ).grid(row=1, column=0, sticky="e")
     reload_personalities()
+
+    questions_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
+    questions_tab.columnconfigure(0, weight=1)
+    questions_tab.rowconfigure(2, weight=1)
+    notebook.add(questions_tab, text="質問")
+
+    ttk.Label(questions_tab, text="質問一覧（database.db）").grid(
+        row=0, column=0, sticky="w", pady=(0, 8)
+    )
+
+    questions_container = ttk.Frame(questions_tab)
+    questions_container.grid(row=2, column=0, sticky="nsew")
+    questions_container.columnconfigure(0, weight=1)
+    questions_container.rowconfigure(0, weight=1)
+
+    questions_tree = ttk.Treeview(
+        questions_container,
+        show="headings",
+        height=9,
+    )
+    questions_tree.grid(row=0, column=0, sticky="nsew")
+
+    questions_scroll_y = ttk.Scrollbar(
+        questions_container,
+        orient="vertical",
+        command=questions_tree.yview,
+    )
+    questions_scroll_y.grid(row=0, column=1, sticky="ns")
+    questions_tree.configure(yscrollcommand=questions_scroll_y.set)
+
+    questions_status_var = tk.StringVar(value="未読込")
+    ttk.Label(questions_tab, textvariable=questions_status_var).grid(
+        row=3, column=0, sticky="w", pady=(8, 0)
+    )
+
+    def reload_questions() -> None:
+        try:
+            columns, rows = read_questions()
+
+            questions_tree.delete(*questions_tree.get_children())
+            questions_tree.configure(columns=columns)
+            for column in columns:
+                questions_tree.heading(column, text=column)
+                questions_tree.column(column, width=140, anchor="w")
+
+            for row in rows:
+                questions_tree.insert("", "end", values=row)
+
+            questions_status_var.set(f"{len(rows)} 件表示")
+        except Exception as exc:
+            questions_status_var.set(f"読込失敗: {exc}")
+            status_var.set(f"質問タブ読込失敗: {exc}")
+
+    def handle_delete_selected_question() -> None:
+        selected_items = questions_tree.selection()
+        if not selected_items:
+            messagebox.showwarning("未選択", "削除する行を選択してください。")
+            return
+
+        item_id = selected_items[0]
+        values = questions_tree.item(item_id, "values")
+        if not values:
+            messagebox.showerror("エラー", "選択行の値を取得できませんでした。")
+            return
+
+        try:
+            question_id = int(values[0])
+        except (TypeError, ValueError):
+            messagebox.showerror("エラー", "選択行のIDが不正です。")
+            return
+
+        if not messagebox.askyesno(
+            "確認",
+            f"question_id={question_id} を削除します。\n"
+            "関連する answers と scores も削除されます。続行しますか？",
+        ):
+            return
+
+        try:
+            deleted_questions, deleted_answers, deleted_scores = (
+                delete_question_and_related_records(question_id)
+            )
+            reload_questions()
+            status_var.set(
+                f"質問ID {question_id} を削除（questions:{deleted_questions}, answers:{deleted_answers}, scores:{deleted_scores}）"
+            )
+            messagebox.showinfo(
+                "削除完了",
+                f"questions: {deleted_questions} 件\n"
+                f"answers: {deleted_answers} 件\n"
+                f"scores: {deleted_scores} 件 を削除しました。",
+            )
+        except Exception as exc:
+            status_var.set(f"質問削除失敗: {exc}")
+            messagebox.showerror("エラー", f"質問削除失敗: {exc}")
+
+    ttk.Button(questions_tab, text="一覧を再読込", command=reload_questions).grid(
+        row=1, column=0, sticky="w"
+    )
+    ttk.Button(
+        questions_tab,
+        text="選択中の質問を削除（answers/scoresも削除）",
+        command=handle_delete_selected_question,
+    ).grid(row=1, column=0, sticky="e")
+    reload_questions()
 
     tools_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
     tools_tab.columnconfigure(0, weight=1)
