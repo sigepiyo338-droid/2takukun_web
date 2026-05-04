@@ -3,13 +3,16 @@ from __future__ import annotations
 from datetime import datetime
 import re
 import sqlite3
+import subprocess
 import shutil
+import sys
 import webbrowser
 from pathlib import Path
 from urllib.request import urlopen
 
 import tkinter as tk
 from tkinter import messagebox, ttk
+import os
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -17,6 +20,8 @@ INDEX_PATH = BASE_DIR / "templates" / "index.html"
 DB_PATH = BASE_DIR / "instance" / "database.db"
 DB_BACKUP_DIR = DB_PATH.parent / "backups"
 DB_URL = "https://sigepiyo338.pythonanywhere.com/static/database.db"
+LOCAL_APP_URL = "http://127.0.0.1:5000/"
+CHROME_WINDOW_SIZE = "620,900"
 
 VERSION_PATTERN = re.compile(r'(<span id="app-version">)([^<]*)(</span>)')
 UPDATED_PATTERN = re.compile(
@@ -157,6 +162,57 @@ def delete_question_and_related_records(question_id: int) -> tuple[int, int, int
     if deleted_questions == 0:
         raise ValueError("選択された question は既に存在しない可能性があります。")
     return deleted_questions, deleted_answers, deleted_scores
+
+
+def find_chrome_executable() -> str | None:
+    # 1. 環境変数 PATH から検索（既存のロジック）
+    candidates = [
+        "chrome",
+        "chrome.exe",
+        "google-chrome",
+        "msedge",
+        "msedge.exe",
+    ]
+    for candidate in candidates:
+        executable = shutil.which(candidate)
+        if executable:
+            return executable
+            
+    # 2. Windows の標準的なインストールパスを直接チェック
+    if sys.platform == "win32":
+        import os
+        # 一般的なインストール先候補
+        win_candidates = [
+            Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Google/Chrome/Application/chrome.exe",
+            Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Google/Chrome/Application/chrome.exe",
+            Path(os.environ.get("LocalAppData", "C:/Users/Default/AppData/Local")) / "Google/Chrome/Application/chrome.exe",
+            Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Microsoft/Edge/Application/msedge.exe",
+        ]
+        for p in win_candidates:
+            if p.exists():
+                return str(p)
+                
+    return None
+
+
+def open_main_screen_in_app_mode(url: str) -> bool:
+    chrome_path = find_chrome_executable()
+    if not chrome_path:
+        return False
+    
+    # 専用のプロファイル保存場所（プロジェクト内の temp_profile フォルダなど）
+    profile_path = BASE_DIR / "temp_profile"
+    
+    subprocess.Popen(
+        [
+            chrome_path,
+            f"--app={url}",
+            f"--window-size={CHROME_WINDOW_SIZE}",
+            f"--user-data-dir={profile_path}", # これを追加
+            "--force-device-scale-factor=1",   # 環境によるズレを防ぐ（任意）
+        ]
+    )
+    return True
 
 
 def build_ui() -> tk.Tk:
@@ -303,6 +359,51 @@ def build_ui() -> tk.Tk:
     ttk.Label(db_tab, textvariable=db_last_modified_var).grid(
         row=5, column=0, columnspan=2, sticky="w", pady=(0, 6)
     )
+
+    test_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
+    test_tab.columnconfigure(0, weight=1)
+    notebook.add(test_tab, text="テスト")
+    app_server_process: subprocess.Popen | None = None
+
+    ttk.Label(test_tab, text=f"実行対象: {BASE_DIR / 'app.py'}").grid(
+        row=1, column=0, sticky="w", pady=(0, 8)
+    )
+
+    def handle_run_app_py() -> None:
+        nonlocal app_server_process
+        app_path = BASE_DIR / "app.py"
+        if not app_path.exists():
+            status_var.set("app.py 実行失敗: app.py が見つかりません。")
+            messagebox.showerror("エラー", f"app.py が見つかりません: {app_path}")
+            return
+        try:
+            if app_server_process is None or app_server_process.poll() is not None:
+                app_server_process = subprocess.Popen(
+                    [sys.executable, str(app_path)],
+                    cwd=str(BASE_DIR),
+                )
+                status_var.set("app.py を起動しました。")
+            else:
+                status_var.set("app.py は起動済みです。")
+
+            if open_main_screen_in_app_mode(LOCAL_APP_URL):
+                status_var.set("メイン画面をChromeアプリモードで開きました。")
+            else:
+                webbrowser.open(LOCAL_APP_URL)
+                status_var.set(
+                    "Chromeが見つからないため通常ブラウザでメイン画面を開きました。"
+                )
+        except Exception as exc:
+            status_var.set(f"app.py 実行失敗: {exc}")
+            messagebox.showerror("エラー", f"app.py 実行失敗: {exc}")
+
+    ttk.Button(test_tab, text="ローカル起動", command=handle_run_app_py).grid(
+        row=2, column=0, sticky="w"
+    )
+    ttk.Label(
+        test_tab,
+        text="※ ローカル起動中はX ポスト機能が制限されます。",
+    ).grid(row=3, column=0, sticky="w", pady=(6, 0))
 
     personalities_tab = ttk.Frame(notebook, style="Manager.TFrame", padding=12)
     personalities_tab.columnconfigure(0, weight=1)

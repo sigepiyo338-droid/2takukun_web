@@ -12,3 +12,6 @@ venv/
 
 # OSの一時ファイル
 .DS_Store
+
+# ローカルのテストデータ
+temp_profile/
