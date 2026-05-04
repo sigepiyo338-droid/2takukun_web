@@ -11,9 +11,7 @@
 <body>
 
     <div id="app">
-        <section id="menu-page" class="section" style="position: relative;"> <a href="https://sigepiyo338.pythonanywhere.com/2takukun_local.zip" download class="download-link">
-               💻 ローカル版(zip)
-           </a>
+        <section id="menu-page" class="section" style="position: relative;">
     <h1>究極二択くん</h1>
     <img src="{{ url_for('static', filename='img/2takukun.png') }}" alt="究極二択くん" id="title-image">
         <p>〜 ヒトの価値観を学習中 〜</p>
@@ -57,6 +55,9 @@
         <section id="other-page" class="section hidden">
             <h2>その他</h2>
             <button id="btn-post-other" onclick="showSection('post-page')">各種投稿</button>
+            <button onclick="window.open('https://github.com/sigepiyo338-droid/2takukun_web', '_blank', 'noopener,noreferrer')">
+                GitHub(デベロッパー向け)
+            </button>
             <button onclick="showSection('menu-page')" style="background-color: #95a5a6;">戻る</button>
         </section>
 
