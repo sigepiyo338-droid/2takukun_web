@@ -98,5 +98,71 @@ def submit_answer():
         "your_choice": choice
     })
 
+
+@app.route('/api/radar-scores', methods=['POST'])
+def radar_scores():
+    """
+    レーダーチャート用: 各性格軸について、DBに蓄積された Score と
+    今回セッションの回答を照らし、1〜5の値を返す。
+
+    各設問では「その設問×性格」の全世界の A/B 集計に対し、
+    ユーザーが選んだ側が占める割合を [0,1] とみなし、
+    セッション内で平均して 1 + 4*平均 で 1〜5 に線形マップする。
+    """
+    data = request.json or {}
+    answers = data.get('answers') or []
+    req_personality_ids = data.get('personality_ids') or []
+
+    if req_personality_ids:
+        personality_ids = [int(x) for x in req_personality_ids[:5]]
+    else:
+        personality_ids = [p.id for p in Personality.query.order_by(Personality.id).limit(5).all()]
+
+    out = []
+    for pid in personality_ids:
+        p = Personality.query.get(pid)
+        if not p:
+            continue
+        ratios = []
+        for ans in answers:
+            qid = ans.get('question_id')
+            choice = ans.get('choice')
+            p_ids = ans.get('personality_ids') or []
+            if p_ids and pid not in p_ids:
+                continue
+            if qid is None or choice not in ('A', 'B'):
+                continue
+            sa = Score.query.filter_by(
+                question_id=qid, personality_id=pid, option='A'
+            ).first()
+            sb = Score.query.filter_by(
+                question_id=qid, personality_id=pid, option='B'
+            ).first()
+            ca = sa.count if sa else 0
+            cb = sb.count if sb else 0
+            total = ca + cb
+            if total == 0:
+                continue
+            if choice == 'A':
+                ratios.append(ca / total)
+            else:
+                ratios.append(cb / total)
+
+        if not ratios:
+            value = 3.0
+        else:
+            avg = sum(ratios) / len(ratios)
+            value = 1 + 4 * avg
+
+        out.append({
+            'id': p.id,
+            'name': p.name,
+            'label': p.label,
+            'value': round(value, 1),
+        })
+
+    return jsonify(out)
+
+
 if __name__ == '__main__':
     app.run(debug=True)

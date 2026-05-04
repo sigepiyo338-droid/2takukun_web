@@ -1,5 +1,0 @@
-(venv) 03:14 ~ $ which python
-/home/sigepiyo338/.virtualenvs/venv/bin/python
-(venv) 03:14 ~ $ which python
-/home/sigepiyo338/.virtualenvs/venv/bin/python
-(venv) 03:14 ~ $ 

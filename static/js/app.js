@@ -57,6 +57,9 @@ async function selectOption(choice) {
     const isMajority = (choice === 'A' && result.percent_a >= 50) || (choice === 'B' && result.percent_b >= 50);
     
     sessionAnswers.push({
+        question_id: q.id,
+        choice_letter: choice,
+        personality_ids: pIds,
         question: q.text,
         choice: choice === 'A' ? q.option_a : q.option_b,
         percent: choice === 'A' ? result.percent_a : result.percent_b,
@@ -84,26 +87,42 @@ function showFinalResult() {
     drawRadarChart();
 }
 
-// レーダーチャート表示
+// レーダーチャート表示（DBの Score 蓄積とセッション回答から算出）
 async function drawRadarChart() {
     const ctx = document.getElementById('resultChart').getContext('2d');
     if (window.myRadarChart) window.myRadarChart.destroy();
 
-    try {
-        const res = await fetch('/api/personalities');
-        const personalities = await res.json();
-        if (!personalities || personalities.length === 0) return;
+    if (!sessionAnswers.length) return;
 
-        const shuffled = personalities.sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, 5);
-        
+    try {
+        const checked = Array.from(
+            document.querySelectorAll('#personality-list input:checked')
+        ).map((cb) => parseInt(cb.value, 10));
+
+        const res = await fetch('/api/radar-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                personality_ids: checked,
+                answers: sessionAnswers.map((a) => ({
+                    question_id: a.question_id,
+                    choice: a.choice_letter,
+                    personality_ids: a.personality_ids
+                }))
+            })
+        });
+        if (!res.ok) return;
+
+        const series = await res.json();
+        if (!series || series.length === 0) return;
+
         window.myRadarChart = new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: selected.map(p => p.label || p.name),
+                labels: series.map((s) => s.label || s.name),
                 datasets: [{
-                    label: '価値観分析',
-                    data: selected.map(() => Math.floor(Math.random() * 5) + 1), // 今後はここをDBの値に
+                    label: '価値観分析（蓄積データ反映）',
+                    data: series.map((s) => s.value),
                     backgroundColor: 'rgba(52, 152, 219, 0.2)',
                     borderColor: 'rgba(52, 152, 219, 1)',
                     borderWidth: 2
