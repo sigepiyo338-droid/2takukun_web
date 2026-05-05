@@ -135,13 +135,32 @@
 
 
         <div id="app-meta" aria-label="アプリ情報">
-            <span id="app-version">v1.1.00</span>
+            <span id="app-version">v1.2.00</span>
             <span>最終更新: 2026-05-05</span>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     
     <script>
+        function getTitleImageByDate(date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const md = month * 100 + day;
+
+            if (md >= 101 && md <= 107) return '2tk-01.png';
+            if (md >= 208 && md <= 214) return '2tk-02.png';
+            if (md >= 325 && md <= 331) return '2tk-03.png';
+            if (md === 401) return '2tk-04.png';
+            if (md >= 402 && md <= 408) return '2tk-05.png';
+            if (md >= 505 && md <= 511) return '2tk-06.png';
+            if (md >= 725 && md <= 731) return '2tk-07.png';
+            if (md >= 809 && md <= 815) return '2tk-08.png';
+            if (md >= 1025 && md <= 1031) return '2tk-09.png';
+            if (md >= 1218 && md <= 1224) return '2tk-10.png';
+
+            return '2takukun.png';
+        }
+
         function selectSecretOption(choice) {
             const questionBlock = document.getElementById('secret-question-block');
             const answerBlock = document.getElementById('secret-answer-block');
@@ -163,6 +182,9 @@
             let easterEggLastTapAt = 0;
 
             if (titleImage) {
+                const imageFilename = getTitleImageByDate(new Date());
+                titleImage.src = "{{ url_for('static', filename='img/') }}" + imageFilename;
+
                 const handleEasterEggTap = () => {
                     const now = Date.now();
                     if (now - easterEggLastTapAt > easterEggResetMs) {
