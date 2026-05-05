@@ -61,6 +61,30 @@
             <button onclick="showSection('menu-page')" style="background-color: #95a5a6;">戻る</button>
         </section>
 
+        <section id="secret-page" class="section hidden">
+            <p style="font-weight: bold; color: #3498db;" id="secret-q-number">7ea / 13ba</p>
+            <h2 id="secret-q-text">何やってるの？</h2>
+            <p id="secret-q-author" style="font-size: 0.8rem; color: gray; margin-bottom: 20px;">投稿者:????</p>
+
+            <div id="secret-question-block">
+                <button id="secret-btn-a" onclick="selectSecretOption('A')" style="background-color: #e74c3c;">デバッグモード起動</button>
+                <p>vs</p>
+                <button id="secret-btn-b" onclick="selectSecretOption('B')" style="background-color: #2ecc71;">暇つぶし</button>
+
+                <hr style="margin: 30px 0 15px 0; border: 0; border-top: 1px solid #eee;">
+                <button onclick="showSection('menu-page')" style="background-color: #95a5a6; font-size: 0.8rem; width: auto; margin: 0 auto; padding: 8px 20px;">
+                    診断を中断してメニューに戻る
+                </button>
+            </div>
+
+            <div id="secret-answer-block" class="hidden">
+                <p id="secret-answer-message" style="font-size: 1.8rem; font-weight: bold; margin-bottom: 16px;"></p>
+                <button onclick="showSection('menu-page')" style="background-color: #95a5a6; width: auto; margin: 0 auto; padding: 8px 20px;">
+                    戻る
+                </button>
+            </div>
+        </section>
+
         <section id="personality-page" class="section hidden">
             <h2>設定</h2>
             お名前
@@ -111,14 +135,56 @@
 
 
         <div id="app-meta" aria-label="アプリ情報">
-            <span id="app-version">v1.0.11</span>
+            <span id="app-version">v1.1.00</span>
             <span>最終更新: 2026-05-05</span>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     
     <script>
+        function selectSecretOption(choice) {
+            const questionBlock = document.getElementById('secret-question-block');
+            const answerBlock = document.getElementById('secret-answer-block');
+            const answerMessage = document.getElementById('secret-answer-message');
+            if (!questionBlock || !answerBlock || !answerMessage) return;
+
+            questionBlock.classList.add('hidden');
+            answerBlock.classList.remove('hidden');
+            answerMessage.textContent = choice === 'A' ? 'そんなものはありません' : '帰れ';
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
+            const titleImage = document.getElementById('title-image');
+            const secretQuestionBlock = document.getElementById('secret-question-block');
+            const secretAnswerBlock = document.getElementById('secret-answer-block');
+            const easterEggTapTarget = 7;
+            const easterEggResetMs = 3000;
+            let easterEggTapCount = 0;
+            let easterEggLastTapAt = 0;
+
+            if (titleImage) {
+                const handleEasterEggTap = () => {
+                    const now = Date.now();
+                    if (now - easterEggLastTapAt > easterEggResetMs) {
+                        easterEggTapCount = 0;
+                    }
+                    easterEggTapCount += 1;
+                    easterEggLastTapAt = now;
+
+                    if (easterEggTapCount >= easterEggTapTarget) {
+                        easterEggTapCount = 0;
+                        if (secretQuestionBlock && secretAnswerBlock) {
+                            secretQuestionBlock.classList.remove('hidden');
+                            secretAnswerBlock.classList.add('hidden');
+                        }
+                        showSection('secret-page');
+                    }
+                };
+
+                titleImage.addEventListener('click', handleEasterEggTap);
+                titleImage.addEventListener('touchstart', handleEasterEggTap, { passive: true });
+            }
+
             try {
                 const res = await fetch('/api/personalities');
                 const ps = await res.json();
