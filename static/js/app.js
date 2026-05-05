@@ -184,14 +184,13 @@ function shareOnX() {
     // 2. 統計データの取得
     const majorityCount = sessionAnswers.filter(ans => ans.type === "多数派").length;
     const totalCount = sessionAnswers.length;
-    const username = document.getElementById('username').value || "名無し";
     
     // 3. ハッシュタグとURLの準備
     const tags = "#プログラミング初心者 #心理テスト #性格診断 #究極の二択";
     const url = window.location.href; 
     
     // 4. 文章の組み立て (URLを上、ハッシュタグを一番下に配置)
-    const text = `【究極二択くん】\n${highlight}\n${username}さんは ${totalCount}問中 ${majorityCount}回 多数派でした！\n\n${url}\n${tags}`;
+    const text = `【究極二択くん】\n${highlight}\n${totalCount}問中 ${majorityCount}回 多数派でした！\n\n${url}\n${tags}`;
     
     // 𝕏 の投稿画面を開く（textの中にURLを含めたので、urlパラメータは空にします）
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');

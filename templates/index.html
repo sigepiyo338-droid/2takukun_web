@@ -15,8 +15,7 @@
     <h1>究極二択くん</h1>
     <img src="{{ url_for('static', filename='img/2takukun.png') }}" alt="究極二択くん" id="title-image">
         <p>〜 ヒトの価値観を学習中 〜</p>
-            <button id="btn-settings" onclick="showSection('personality-page')">あなたについて(最初の設定)</button>
-            <button id="btn-start" onclick="startDiagnosis()">2択診断開始！</button>
+            <button id="btn-start" onclick="showSection('personality-page')">2択診断開始！</button>
             <button id="btn-other" onclick="showSection('other-page')">
                 その他
                 <span class="button-subtext">（質問の投稿などが行えます）</span>
@@ -87,9 +86,6 @@
 
         <section id="personality-page" class="section hidden">
             <h2>設定</h2>
-            お名前
-            <input type="text" id="username" placeholder="名前を入力">
-
             <div style="margin: 20px 0; padding: 10px; border: 1px dashed #3498db; border-radius: 8px;">
                 <p style="font-weight: bold; margin-bottom: 10px;">診断の出題数を選択</p>
                 <label><input type="radio" name="q-count" value="1"> 1問</label>
@@ -99,6 +95,7 @@
 
             <p style="font-size: 0.8rem;">あなたの性格で当てはまるものにチェック</p>
             <div id="personality-list"></div>
+            <button onclick="startDiagnosis()">2択診断開始！</button>
             <button onclick="showSection('menu-page')">決定して戻る</button>
         </section>
 
@@ -135,7 +132,7 @@
 
 
         <div id="app-meta" aria-label="アプリ情報">
-            <span id="app-version">v1.2.00</span>
+            <span id="app-version">v1.2.01</span>
             <span>最終更新: 2026-05-05</span>
         </div>
     </div>
@@ -221,7 +218,6 @@
                     });
                 }
                 loadUserSettings();
-                document.getElementById('username').oninput = saveUserSettings;
                 document.querySelectorAll('input[name="q-count"]').forEach(r => {
                     r.onchange = saveUserSettings;
                 });
