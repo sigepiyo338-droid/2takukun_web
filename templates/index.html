@@ -26,9 +26,8 @@
             </a>
         </section>
 
-        <section id="post-page" class="section hidden">
-            <h2>各種投稿</h2>
-            
+        <section id="question-post-page" class="section hidden">
+            <h2>質問投稿</h2>
             <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
                 <h3>▼ 新しい「二択」を投稿</h3>
                 <input type="text" id="new-q-text" placeholder="例：一生夏か、一生冬か？">
@@ -39,7 +38,11 @@
                 <input type="text" id="new-q-author" placeholder="あなたの名前">
                 <button onclick="submitPost()">問題を登録</button>
             </div>
+            <button onclick="showSection('other-page')" style="background-color: #95a5a6;">戻る</button>
+        </section>
 
+        <section id="personality-post-page" class="section hidden">
+            <h2>性格投稿</h2>
             <div style="border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
                 <h3>▼ 新しい「性格」を定義</h3>
                 <p style="font-size: 0.7rem;">例：性格名「エゴイスト」、ラベル「エゴ度」</p>
@@ -47,13 +50,13 @@
                 <input type="text" id="user-p-label" placeholder="表示ラベル">
                 <button onclick="addUserPersonality()" style="background-color: #27ae60;">性格を追加</button>
             </div>
-
             <button onclick="showSection('other-page')" style="background-color: #95a5a6;">戻る</button>
         </section>
 
         <section id="other-page" class="section hidden">
             <h2>その他</h2>
-            <button id="btn-post-other" onclick="showSection('post-page')">各種投稿</button>
+            <button onclick="showSection('question-post-page')">質問投稿</button>
+            <button onclick="showSection('personality-post-page')">性格投稿</button>
             <button onclick="window.open('https://github.com/sigepiyo338-droid/2takukun_web', '_blank', 'noopener,noreferrer')">
                 GitHub(デベロッパー向け)
             </button>
@@ -132,7 +135,7 @@
 
 
         <div id="app-meta" aria-label="アプリ情報">
-            <span id="app-version">v1.2.01</span>
+            <span id="app-version">v1.2.02</span>
             <span>最終更新: 2026-05-05</span>
         </div>
     </div>
